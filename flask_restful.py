@@ -4,6 +4,8 @@ from flask import abort
 from flask import make_response
 from flask import request
 from flask.ext.httpauth import HTTPBasicAuth
+from flask import url_for
+
 auth = HTTPBasicAuth()
 
 app = Flask(__name__)
@@ -33,10 +35,22 @@ def get_password(username):#回调函数,获取给定用户的密码
 def unauthorized():
     return make_response(jsonify({'error':'Unauthorized access'}), 403)
 
+
+#目前 API 的设计的问题就是迫使客户端在任务标识返回后去构造 URIs。这对于服务##器是十分简单的，但是间接地迫使客户端知道这些 URIs 是如何构造的，这将会阻碍##我们以后变更这些 URIs。
+
+def make_public_task(task):
+    new_task = {}
+    for field in task:
+        if field == 'id':
+            new_task['uri'] = url_for('get_task', task_id=task['id'], _external=True)
+        else:
+            new_task[field] = task[field]
+    return new_task
+
 @app.route('/todo/api/v1.0/tasks',  methods=(['GET']))
 @auth.login_required
 def get_tasks():
-    return jsonify({'tasks':tasks})
+    return jsonify({'tasks':map(make_public_task, tasks)})
 
 @app.route('/todo/api/v1.0/tasks/<int:task_id>', methods=(['GET']))
 def get_task(task_id):
