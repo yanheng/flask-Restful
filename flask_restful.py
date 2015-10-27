@@ -1,7 +1,11 @@
+#encoding=utf-8
 from flask import Flask, jsonify
 from flask import abort
 from flask import make_response
 from flask import request
+from flask.ext.httpauth import HTTPBasicAuth
+auth = HTTPBasicAuth()
+
 app = Flask(__name__)
 
 tasks = [
@@ -19,7 +23,18 @@ tasks = [
     }
 ]
 
+@auth.get_password
+def get_password(username):#回调函数,获取给定用户的密码
+    if username == 'miguel':
+        return 'python'
+    return None
+
+@auth.error_handler#回调函数
+def unauthorized():
+    return make_response(jsonify({'error':'Unauthorized access'}), 403)
+
 @app.route('/todo/api/v1.0/tasks',  methods=(['GET']))
+@auth.login_required
 def get_tasks():
     return jsonify({'tasks':tasks})
 
